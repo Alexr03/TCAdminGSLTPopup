@@ -1,0 +1,124 @@
+﻿@using Kendo.Mvc.UI
+@using TCAdmin.GameHosting.SDK.Objects
+@using TCAdmin.SDK.Objects
+@using Service = TCAdmin.GameHosting.SDK.Objects.Service
+@model Models.Game.ServiceModel
+
+@functions{
+    private Service _service;
+    private Game _game;
+    private bool _gsltSet;
+}
+
+@{
+    _service = new Service(Model.ServiceId);
+    _game = new Game(Model.GameId);
+    var gsltRequired = _game.Notes.Contains("[GSLT-REQUIRED]");
+    var gsltStopIfNone = _game.Notes.Contains("[GSLT-STOPIFNONE]");
+    var hasGsltVariable = _game.CustomVariables.Cast<CustomVariable>().ToList().Any(x => x.Name == "GSLT");
+    if (!hasGsltVariable)
+    {
+        return;
+    }
+
+    _gsltSet = _service.Variables.HasValue("GSLT");
+    if (!_gsltSet && gsltStopIfNone)
+    {
+        _service.Stop();
+    }
+}
+
+@helper RenderWhatIsGslt()
+{
+    <h2>What is GSLT?</h2>
+    <p>GSLT creates a persistent token for a game server. This allows any users who added your server to favorites to join, even if you change your ip address. This is very useful if you change your server/hosting provider. It also verifies game ownership (as a verified purchase on Steam is required to generate a GSLT) and prevents fake servers flooding the server list.</p>
+    <p>Learn more about <strong>Game Server Login Token</strong><a href="https://docs.linuxgsm.com/steamcmd/gslt">here</a></p>
+}
+
+@helper RenderSetGsltToken()
+{
+    var service = new Service(Model.ServiceId);
+    var game = new Game(Model.GameId);
+    var gsltSet = service.Variables.HasValue("GSLT");
+
+    <p>You can get a GSLT token<a href="https://steamcommunity.com/dev/managegameservers">here.</a> You can enter the information below into the form.</p>
+    <ul>
+        <li>App ID: <strong>@game.Steam.SteamStoreGameId</strong></li>
+        <li>Memo: <strong>@service.GameShortNameAndConnectionInfo</strong></li>
+    </ul>
+    <div>
+        @(Html.Kendo().TextBox()
+            .Name("gsltToken")
+            .Label(label => label.Content("GSLT Token: "))
+            .Placeholder(gsltSet ? service.Variables["GSLT"].ToString() : "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+            .HtmlAttributes(new {maxlength = "32"})
+            )
+        @(Html.Kendo().Button()
+            .Name("gsltSubmit")
+            .Content("Set Token")
+            .HtmlAttributes(new {style = "padding-left: 5px;", @class = "k-primary"})
+            .Icon("check")
+            .Events(events => events.Click("submitGslt"))
+            )
+    </div>
+}
+
+@(Html.Kendo().Window()
+    .Name("gsltWindow")
+    .Title("Game Server Login Token")
+    .Width(600)
+    .Modal(true)
+    .Scrollable(false)
+    .HtmlAttributes(new {height = "100%"})
+    .Visible(!_gsltSet)
+    .Actions(x =>
+    {
+        if (!gsltRequired)
+        {
+            x.Close();
+        }
+    })
+    .Events(events => events.Activate("centerKendoWindow"))
+    .Content(@<text>
+                 @(Html.Kendo().TabStrip()
+                     .Name("gsltTabStrip")
+                     .SelectedIndex(0)
+                     .Items(items =>
+                     {
+                         items.Add().Text("GSLT Token").Content(RenderSetGsltToken().ToHtmlString());
+                         items.Add().Text("What is GSLT").Content(RenderWhatIsGslt().ToHtmlString());
+                     })
+                     )
+              </text>)
+    )
+
+<script>
+    function centerKendoWindow(e) {
+        this.center();
+    }
+    
+    function submitGslt(){
+        const value = $("#gsltToken").data("kendoTextBox").value();
+        if(value.length !== 32){
+            TCAdmin.Ajax.ShowBasicDialog("GSLT", "Token has invalid length, the token must be at least 32 characters");
+            return;
+        }
+        
+        $.ajax({
+            type: "POST",
+            url: "/Gslt/SetToken/@_service.ServiceId",
+            data: JSON.stringify({token: value}),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            error: function (e) {
+                if(e.responseJSON && e.responseJSON.Message){
+                    TCAdmin.Ajax.ShowBasicDialog("GSLT Error", e.responseJSON.Message);
+                }
+            },
+            success: function (e) {
+                $("#gsltWindow").data("kendoWindow").close();
+                TCAdmin.Ajax.ShowBasicDialog("GSLT Success", e.Message)
+            }
+        });
+    }
+</script>
