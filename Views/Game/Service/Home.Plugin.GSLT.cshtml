@@ -16,10 +16,10 @@
     var gsltRequired = _game.Notes.Contains("[GSLT-REQUIRED]");
     var gsltStopIfNone = _game.Notes.Contains("[GSLT-STOPIFNONE]");
     var hasGsltVariable = _game.CustomVariables.Cast<CustomVariable>().ToList().Any(x => x.Name == "GSLT");
-    // if (!hasGsltVariable)
-    // {
-    //     return;
-    // }
+    if (!hasGsltVariable)
+    {
+        return;
+    }
 
     _gsltSet = _service.Variables.HasValue("GSLT");
     if (!_gsltSet && gsltStopIfNone)
@@ -70,7 +70,7 @@
     .Modal(true)
     .Scrollable(false)
     .HtmlAttributes(new {height = "100%"})
-    // .Visible(!_gsltSet)
+    .Visible(!_gsltSet)
     .Actions(x =>
     {
         if (!gsltRequired)
