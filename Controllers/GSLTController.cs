@@ -1,7 +1,9 @@
-﻿using System.Web.Mvc;
-using TCAdmin.GameHosting.SDK.Objects;
+﻿using System;
+using System.Web.Mvc;
+using TCAdmin.SDK.Objects;
 using TCAdmin.SDK.Web.MVC.Controllers;
 using TCAdmin.Web.MVC;
+using Service = TCAdmin.GameHosting.SDK.Objects.Service;
 
 namespace TCAdminGSLT.Controllers
 {
@@ -10,17 +12,25 @@ namespace TCAdminGSLT.Controllers
     {
         [HttpPost]
         [ParentAction("Service", "Home")]
-        public ActionResult SetToken(string token)
+        public ActionResult SetToken(int id, string token)
         {
-            var service = Service.GetSelectedService();
-            service.Variables["GSLT"] = token;
-            service.Save();
-            service.Configure();
-
-            return Json(new
+            try
             {
-                Message = "Successfully saved GSLT."
-            });
+                ObjectBase.GlobalSkipSecurityCheck = true;
+                var service = Service.GetSelectedService();
+                service.Variables["GSLT"] = token;
+                service.Save();
+                service.Configure();
+
+                return Json(new
+                {
+                    Message = "Successfully saved GSLT."
+                });
+            }
+            finally
+            {
+                ObjectBase.GlobalSkipSecurityCheck = false;
+            }
         }
     }
 }
