@@ -21,7 +21,7 @@
         return;
     }
 
-    _gsltSet = _service.Variables.HasValue("GSLT");
+    _gsltSet = (string) _service.Variables.GetValue("GSLT", string.Empty) != string.Empty;
     if (!_gsltSet && gsltStopIfNone)
     {
         _service.Stop();
