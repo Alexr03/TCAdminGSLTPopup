@@ -1,4 +1,5 @@
-﻿@using Kendo.Mvc.UI
+﻿@using Alexr03.Common.TCAdmin.Extensions
+@using Kendo.Mvc.UI
 @using TCAdmin.GameHosting.SDK.Objects
 @using TCAdmin.SDK.Objects
 @using Service = TCAdmin.GameHosting.SDK.Objects.Service
@@ -21,7 +22,7 @@
         return;
     }
 
-    _gsltSet = (string) _service.Variables.GetValue("GSLT", string.Empty) != string.Empty;
+    _gsltSet = _service.Variables.HasValueAndSet("GSLT");
     if (!_gsltSet && gsltStopIfNone)
     {
         _service.Stop();
@@ -110,14 +111,10 @@
             data: JSON.stringify({token: value}),
             contentType: "application/json; charset=utf-8",
             dataType: "json",
-            error: function (e) {
-                if(e.responseJSON && e.responseJSON.Message){
-                    TCAdmin.Ajax.ShowBasicDialog("GSLT Error", e.responseJSON.Message);
-                }
-            },
+            error: Alexr03.Common.HandleAjaxFailure,
             success: function (e) {
                 $("#gsltWindow").data("kendoWindow").close();
-                TCAdmin.Ajax.ShowBasicDialog("GSLT Success", e.Message)
+                Alexr03.Common.HandleAjaxSuccess(e)
             }
         });
     }
